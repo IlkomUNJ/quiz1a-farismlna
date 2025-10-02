@@ -1,10 +1,15 @@
 #include <iostream>
 #include "bank_customer.h"
 #include "buyer.h"
+#include <vector>
+#include "seller.h"
 
 enum PrimaryPrompt{LOGIN, REGISTER, EXIT, ADMIN_LOGIN};
 enum RegisterPrompt{CREATE_BUYER, CREATE_SELLER, BACK};
 using namespace std;
+
+vector<Buyer> buyers;
+vector<seller> sellers;
 
 int main() {
     //create a loop prompt 
@@ -13,7 +18,22 @@ int main() {
     const string ADMIN_USERNAME = "root";
     const string ADMIN_PASSWORD = "toor";
     string username, password;
+    bool adminRunning = false;
+    bool viewDetails = false;
+    bool searchRunning = false;
+    bool createRunning = false;
+    bool removeRunning = true;
 
+    BankCustomer acc1(1, "Alice", 5000.0);
+    BankCustomer acc2(2, "Bob", 3000.0);
+
+    // Dummy Buyers
+    buyers.push_back(Buyer(1, "Alice", "Jl. Mawar", "0812345678", "alice@mail.com", acc1));
+    buyers.push_back(Buyer(2, "Bob", "Jl. Melati", "0898765432", "bob@mail.com", acc2));
+
+    // Dummy Sellers
+    sellers.push_back(seller(buyers[1], 101, "Bob Store", "Jl. Melati No.2", "0811223344", "storebob@mail.com"));
+    
     while (prompt != EXIT) {
         cout << "Select an option: " << endl;
         cout << "1. Login" << endl;
@@ -117,23 +137,300 @@ int main() {
             case EXIT:
                 cout << "Exiting." << endl;
                 break;
+
+            /** After login create a sub prompt that provides the following features
+            1. Account Management
+                - View All Buyers, Sellers
+                - View All details of Buyers, Sellers
+                - Seek certain buyer of seller based on Name / account Id / address / phone number
+                - Create new buyer/seller/Bank account
+                - Remove buyer/seller based on ID (all related info will be deleted)
+            2. System Report
+                - Total number of Buyers, Sellers
+                - Total number of Banking Accounts
+            */
             case ADMIN_LOGIN:
                 /* Prompt for username & password then check the entries with our hard coded features */
                 cout << "Username: ";
                 cin >> username;
                 cout << "Password: ";
                 cin >> password;
-                /** After login create a sub prompt that provides the following features
-                1. Account Management
-                    - View All Buyers, Sellers
-                    - View All details of Buyers, Sellers
-                    - Seek certain buyer of seller based on Name / account Id / address / phone number
-                    - Create new buyer/seller/Bank account
-                    - Remove buyer/seller based on ID (all related info will be deleted)
-                2. System Report
-                    - Total number of Buyers, Sellers
-                    - Total number of Banking Accounts
-                */
+
+                if (username == ADMIN_USERNAME && password == ADMIN_PASSWORD) {
+                    cout << "Admin login successful." << endl;
+                    adminRunning = true;
+                    while (adminRunning) {
+                        cout << "\n--- Admin Menu ---\n";
+                        cout << "1. View All Buyers\n";
+                        cout << "2. View All Sellers\n";
+                        cout << "3. View All Details (Buyers or Sellers)\n";
+                        cout << "4. Search Buyer/Seller by Name/ID/Address/Phone\n";
+                        cout << "5. Create new Buyer/Seller/Bank account\n";
+                        cout << "6. Remove Buyer/Seller by ID\n";
+                        cout << "7. Logout\n";
+                        int adminChoice;
+                        cin >> adminChoice;
+
+                        switch (adminChoice) {
+                            case 1:
+                                cout << "List of Buyers\n";
+                                if (buyers.empty()) {
+                                    cout << "No buyers available.\n";
+                                } else {
+                                    for (const auto &b : buyers) {
+                                        cout << "Name: " << b.getName()
+                                            << " | Balance: $" << b.getAccount().getBalance()
+                                            << endl;
+                                    }
+                                }
+                                break;
+                            case 2:
+                                cout << "List of Sellers\n";
+                                if (sellers.empty()) {
+                                    cout << "No sellers available.\n";
+                                } else {
+                                    for (const auto& seller : sellers) {
+                                        cout << "Store Name: " << seller.getSellerName()
+                                             << " | Balance: $" << seller.getAccount().getBalance()
+                                             << endl;
+                                    }
+                                }
+                                break;
+                            case 3:
+                                viewDetails = true;
+                                while (viewDetails) {
+                                    cout << "\n--- View Details Menu ---\n";
+                                    cout << "1. View All Buyer Details\n";
+                                    cout << "2. View All Seller Details\n";
+                                    cout << "3. Back\n";
+                                    int detailChoice;
+                                    cin >> detailChoice;
+
+                                    switch (detailChoice) {
+                                        case 1: {
+                                            cout << "\n--- Buyer Details ---\n";
+                                            if (buyers.empty()) {
+                                                cout << "No buyers available.\n";
+                                            } else {
+                                                for (const auto &b : buyers) {
+                                                    b.printInfo();
+                                                    cout << "----------------------\n";
+                                                }
+                                            }
+                                            break;
+                                        }
+                                        case 2: {
+                                            cout << "\n--- Seller Details ---\n";
+                                            if (sellers.empty()) {
+                                                cout << "No sellers available.\n";
+                                            } else {
+                                                for (const auto &s : sellers) {
+                                                    s.printInfo();
+                                                    cout << "----------------------\n";
+                                                }
+                                            }
+                                            break;
+                                        }
+                                        case 3:
+                                            cout << "Back to Admin Menu.\n";
+                                            viewDetails = false;
+                                            break;
+                                        default:
+                                            cout << "Invalid option.\n";
+                                            break;
+                                    }
+                                }
+                                break;
+                            case 4:
+                                searchRunning = true;
+                                while (searchRunning) {
+                                    cout << "\n--- Search Menu ---\n";
+                                    cout << "1. Search Buyer\n";
+                                    cout << "2. Search Seller\n";
+                                    cout << "3. Back\n";
+                                    int searchChoice;
+                                    cin >> searchChoice;
+
+                                    switch (searchChoice) {
+                                        case 1: { // Search Buyer
+                                            cout << "Search Buyer by:\n";
+                                            cout << "1. ID\n2. Name\n3. Phone\n4. Address\n";
+                                            int opt; cin >> opt;
+                                            bool found = false;
+
+                                            if (opt == 1) {
+                                                cout << "Enter Buyer ID: ";
+                                                int id; cin >> id;
+                                                for (const auto& b : buyers) {
+                                                    if (b.getId() == id) { b.printInfo(); found = true; break; }
+                                                }
+                                            } else if (opt == 2) {
+                                                cout << "Enter Buyer Name: ";
+                                                string name; cin >> name;
+                                                for (const auto& b : buyers) {
+                                                    if (b.getName() == name) { b.printInfo(); found = true; break; }
+                                                }
+                                            } else if (opt == 3) {
+                                                cout << "Enter Buyer Phone: ";
+                                                string phone; cin >> phone;
+                                                for (const auto& b : buyers) {
+                                                    if (b.getPhone() == phone) { b.printInfo(); found = true; break; }
+                                                }
+                                            } else if (opt == 4) {
+                                                cout << "Enter Buyer Address: ";
+                                                string addr; cin >> addr;
+                                                for (const auto& b : buyers) {
+                                                    if (b.getAddress() == addr) { b.printInfo(); found = true; break; }
+                                                }
+                                            }
+
+                                            if (!found) cout << "Buyer not found.\n";
+                                            break;
+                                        }
+                                        case 2: { // Search Seller
+                                            cout << "Search Seller by:\n";
+                                            cout << "1. ID\n2. Store Name\n3. Phone\n4. Address\n";
+                                            int opt; cin >> opt;
+                                            bool found = false;
+
+                                            if (opt == 1) {
+                                                cout << "Enter Seller ID: ";
+                                                int id; cin >> id;
+                                                for (const auto& s : sellers) {
+                                                    if (s.getSellerId() == id) { s.printInfo(); found = true; break; }
+                                                }
+                                            } else if (opt == 2) {
+                                                cout << "Enter Store Name: ";
+                                                string store; cin >> store;
+                                                for (const auto& s : sellers) {
+                                                    if (s.getSellerName() == store) { s.printInfo(); found = true; break; }
+                                                }
+                                            } else if (opt == 3) {
+                                                cout << "Enter Store Phone: ";
+                                                string phone; cin >> phone;
+                                                for (const auto& s : sellers) {
+                                                    if (s.getSellerPhone() == phone) { s.printInfo(); found = true; break; }
+                                                }
+                                            } else if (opt == 4) {
+                                                cout << "Enter Store Address: ";
+                                                string addr; cin >> addr;
+                                                for (const auto& s : sellers) {
+                                                    if (s.getSellerAddress() == addr) { s.printInfo(); found = true; break; }
+                                                }
+                                            }
+
+                                            if (!found) cout << "Seller not found.\n";
+                                            break;
+                                        }
+                                        case 3:
+                                            cout << "Back to Admin Menu.\n";
+                                            searchRunning = false;
+                                            break;
+                                        default:
+                                            cout << "Invalid option.\n";
+                                            break;
+                                    }
+                                }
+                                break;
+                            case 5:
+                                createRunning = true;
+                                while (createRunning) {
+                                    cout << "\n--- Create Menu ---\n";
+                                    cout << "1. Create Buyer Account\n";
+                                    cout << "2. Create Seller Account\n";
+                                    cout << "3. Create Bank Account only\n";
+                                    cout << "4. Back\n";
+                                    int createChoice;
+                                    cin >> createChoice;
+
+                                    switch (createChoice) {
+                                        case 1: { // Create Buyer
+                                            int id; string name, addr, phone, email; double balance;
+                                            cout << "Enter Buyer ID: "; cin >> id;
+                                            cout << "Enter Name: "; cin >> name;
+                                            cout << "Enter Address: "; cin >> addr;
+                                            cout << "Enter Phone: "; cin >> phone;
+                                            cout << "Enter Email: "; cin >> email;
+                                            cout << "Enter Initial Balance: "; cin >> balance;
+
+                                            // buat BankCustomer
+                                            BankCustomer *newAcc = new BankCustomer(id, name, balance);
+                                            // simpan Buyer
+                                            buyers.push_back(Buyer(id, name, addr, phone, email, *newAcc));
+                                            cout << "Buyer created successfully!\n";
+                                            break;
+                                        }
+                                        case 2: { // Create Seller (butuh Buyer dulu)
+                                            if (buyers.empty()) {
+                                                cout << "No buyers available! Create a buyer first.\n";
+                                                break;
+                                            }
+                                            int sid, bid;
+                                            string storeName, storeAddr, storePhone, storeEmail;
+
+                                            cout << "Enter Seller ID: "; cin >> sid;
+                                            cout << "Link to Buyer ID: "; cin >> bid;
+
+                                            // cari buyer
+                                            Buyer *linkedBuyer = nullptr;
+                                            for (auto &b : buyers) {
+                                                if (b.getId() == bid) {
+                                                    linkedBuyer = &b;
+                                                    break;
+                                                }
+                                            }
+                                            if (!linkedBuyer) {
+                                                cout << "Buyer not found!\n";
+                                                break;
+                                            }
+
+                                            cout << "Enter Store Name: "; cin >> storeName;
+                                            cout << "Enter Store Address: "; cin >> storeAddr;
+                                            cout << "Enter Store Phone: "; cin >> storePhone;
+                                            cout << "Enter Store Email: "; cin >> storeEmail;
+
+                                            sellers.push_back(seller(*linkedBuyer, sid, storeName, storeAddr, storePhone, storeEmail));
+                                            cout << "Seller created successfully!\n";
+                                            break;
+                                        }
+                                        case 3: { // Create Bank Account only
+                                            int id; string name; double balance;
+                                            cout << "Enter Account ID: "; cin >> id;
+                                            cout << "Enter Name: "; cin >> name;
+                                            cout << "Enter Initial Balance: "; cin >> balance;
+
+                                            BankCustomer *newAcc = new BankCustomer(id, name, balance);
+                                            cout << "Bank account created successfully!\n";
+                                            // catatan: kalau mau, bisa simpan di vector<BankCustomer>
+                                            break;
+                                        }
+                                        case 4:
+                                            cout << "Back to Admin Menu.\n";
+                                            createRunning = false;
+                                            break;
+                                        default:
+                                            cout << "Invalid option.\n";
+                                            break;
+                                    }
+                                }
+                                break;
+                            case 6:
+                                cout << "Remove account by ID\n";
+                                break;
+                            case 7:
+                                cout << "Logging out from Admin.\n";
+                                adminRunning = false;
+                                break;
+                            default:
+                                cout << "Invalid option.\n";
+                                break;
+                        }
+                    }
+                } else {
+                    cout << "Invalid admin credentials. Access denied.\n";
+                }
+
+                
                 break;
             default:
                 cout << "Invalid option." << endl;
